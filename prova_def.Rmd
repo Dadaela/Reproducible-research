@@ -1,0 +1,121 @@
+---
+title: "Course Project 1 - Reproducible Research"
+author: "daniela di michele"
+date: "dicembre 2019"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+Step 1 - Code for reading in the dataset and/or processing the data
+```{r}
+library(lubridate)
+library(dplyr)
+activity<-read.csv("C:/Users/daniela.dimichele/Desktop/coursera/corso_5/test_2/activity.csv",header=TRUE,sep=",")
+summary(activity)
+activity$date<-ymd(activity$date)
+```
+INFORMATION ABOUT THE VARIABLES
+```{r}
+dim(activity)
+head(activity)
+str(activity)
+groupActivity <- group_by(activity, date)
+Activity_2<-summarize(groupActivity, steps= sum(steps, na.rm = TRUE ))
+Activity_2
+```
+##Step 2 - Histogram of the total number of steps taken each day
+```{r}
+hist(Activity_2$steps,
+    main = "Histogram of the Total Number of Steps Taken per Day", 
+    xlab = "Number of Steps", 
+    ylab = "Number of days",
+    col  = "Green",
+    breaks=10)
+abline(v = mean(Activity_2$steps), lty = 1, lwd = 2, col = "orange")
+abline(v = median(Activity_2$steps), lty = 2, lwd = 2, col = "black")
+legend(x = "topleft", c("Mean", "Median"), col = c("orange", "black"), 
+       lty = c(1, 2), lwd = c(2, 2))
+
+```
+##Step 3 - Mean and median number of steps taken each day
+```{r}
+mean(Activity_2$steps)
+median(Activity_2$steps)
+```
+
+##Step 4 - Time series plot of the average number of steps taken
+```{r}
+Group_Activity <- group_by(activity, interval)
+Activity_mean<-summarize(Group_Activity, steps= mean(steps, na.rm = TRUE ))
+Activity_mean
+
+plot(Activity_mean$interval, Activity_mean$steps, ty = "l",
+     col="green",
+     xlab = "Time interval", 
+     ylab = "Mean Steps Every day", 
+     main = "Mean Steps by Date")
+```
+
+##Step 5 - The 5-minute interval that, on average, contains the maximum number of steps
+```{r}
+Activity_mean[which.max(Activity_mean$steps), ]$interval
+summary(activity)
+```
+##Step 6 - Code to describe and show a strategy for imputing missing data
+```{r}
+activity_new<-activity
+for (i in 1:nrow(activity_new))
+{
+  if (is.na(activity_new$steps[i])){
+    activity_new$steps[i]<-Activity_mean[which(activity_new$interval[i] == Activity_mean$interval),]$steps
+  }
+}
+summary(activity_new)
+sum(is.na(activity_new))
+group_activity_new <- group_by(activity_new, date)
+data_fi<-summarize(group_activity_new, steps= sum(steps, na.rm = TRUE ))
+data_fi
+```
+
+##Step 7 - Histogram of the total number of steps taken each day after missing values are imputed
+```{r}
+hist(data_fi$steps, breaks=10,
+     col = "red",
+     main = "Total number of steps x day", 
+     xlab = "Steps",ylab="Frequency")
+mean(data_fi$steps)
+median(data_fi$steps)
+``` 
+
+```{r}
+par(mfrow=c(1,2))
+hist(activity_new$steps, 
+     breaks=10,
+     main = "Total number of steps per day", 
+     xlab = "Steps", 
+     col = "red")
+hist(data_fi$steps, 
+     breaks=10,
+     main = "Total number of steps x day with no NA's", 
+     xlab = "Steps",
+     col = "red")
+```
+
+##Step 8 - Panel plot comparing the average number of steps taken per 5-minute interval across weekdays and weekends
+```{r}
+library(ggplot2)
+
+for (i in 1:nrow(activity))
+{
+  if(weekdays(activity$date[i])=="Saturday"|weekdays(activity$date[i])=="Sunday")
+    { 
+    activity$weekdays[i]<-"weekend"
+  }else{activity$weekdays[i]<-"weekday"}
+}
+inte_group_Na <- group_by(activity, interval,weekdays)
+dataNA<-summarize(inte_group_Na, steps= mean(steps, na.rm = TRUE ))
+qplot(interval,steps, data = dataNA,facets = weekdays~., geom="line")
+```
+
+
